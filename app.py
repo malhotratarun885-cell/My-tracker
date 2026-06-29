@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 
 # 1. पेज कॉन्फ़िगरेशन और टाइटल
 st.set_page_config(page_title="CGL Tracker AI", page_icon="🎯", layout="wide")
-st.title("🎯 SSC CGL Personal Roadmap AI Tool")
+st.title("🎯 SSC CGL Ultimate Personal Roadmap Tool")
 
 # 2. लाइव काउंटडाउन इंजन (Date Logic)
 today = date.today()
@@ -25,35 +25,72 @@ with col3:
 
 st.markdown("---")
 
-# 3. सिलेबस का डेटाबेस (6 सेक्शन्स और उनके सब-सेक्शन्स)
-syllabus = {
-    "English": ["Grammar (Error/Fillers)", "Vocabulary (Syn/Ant/Idioms)", "Reading Comprehension", "Cloze Test & Para Jumbles"],
-    "Maths": ["Arithmetic (Percentage/P&L/SI-CI)", "Arithmetic (Ratio/Time & Work/Speed)", "Advanced (Algebra/Geometry)", "Advanced (Mensuration/Trigonometry/DI)"],
-    "GK": ["History & Geography", "Polity & Constitution", "General Science (Phy/Chem/Bio)", "Static GK & Current Affairs"],
-    "Reasoning": ["Verbal (Analogy/Syllogism/Blood Rel)", "Coding-Decoding & Series", "Non-Verbal (Mirror/Paper Cutting)", "Matrix & Embedded Figures"],
-    "Economics": ["Micro & Macro Economics", "Indian Economy & Five Year Plans", "Budget & Banking Systems", "Inflation, Demand & Supply"],
-    "Mock Tests": ["Sectional Mocks", "Full-Length Prelims Mocks", "Full-Length Mains Mocks", "Previous Year Papers (PYQs)"]
+# 3. महा-डेटाबेस: कम्पलीट डिटेल्ड सिलेबस
+syllabus_db = {
+    "Maths 🧮": {
+        "Number System": ["Whole numbers, Decimals & Fractions", "LCM & HCF", "Surds & Indices"],
+        "Arithmetic": ["Percentage", "Profit and Loss", "SI & CI", "Ratio & Proportion", "Time & Work", "Time & Distance", "Boat & Stream", "Ages", "Partnership"],
+        "Algebra": ["Algebraic Identities", "Linear Equations", "Quadratic Equations"],
+        "Geometry": ["Lines & Angles", "Triangles", "Circles", "Polygons", "Congruence & Similarity"],
+        "Mensuration": ["2D figures (Square, Rectangle, Triangle, Circle)", "3D figures (Cone, Cylinder, Sphere, Hemisphere)"],
+        "Trigonometry": ["Trigonometric Ratios", "Heights & Distances", "Complementary Angles"],
+        "Coordinate Geometry": ["Graphs of Linear Equations"],
+        "Data Interpretation": ["Tables & Bar Graphs", "Pie Charts", "Histograms & Frequency Polygons"]
+    },
+    "English Grammar 🔤": {
+        "Parts of Speech": ["Nouns", "Pronouns", "Verbs & Infinitives", "Adverbs", "Adjectives", "Prepositions", "Conjunctions", "Articles"],
+        "Sentence Structure": ["Tense & Conditional Sentences", "Subject-Verb Agreement", "Question Tags"],
+        "Voice & Speech": ["Active & Passive Voice", "Direct & Indirect Speech"]
+    },
+    "Reasoning 🧠": {
+        "Verbal Reasoning": ["Dice", "Direction and distance", "Ranking system", "Alphabet test", "Calendar", "Clock", "Blood Relation", "Coding-decoding", "Age based question", "Venn Diagram", "Syllogism", "Statement and Conclusion", "Puzzle", "Sitting Arrangement", "Series", "Missing Numbers", "Analogy", "Classification", "Argument and Assumptions", "Cube and Cuboid", "Symbol and Notation", "Matrix"],
+        "Non-Verbal Reasoning": ["Mirror and Water Image", "Paper Folding & cutting", "Counting Figure", "Figure Completion", "Figure Series", "Embedded Figure"]
+    },
+    "GK & Science 🌍": {
+        "History": ["Ancient History", "Medieval History", "Modern History"],
+        "Geography": ["Physical Geography", "Indian Geography"],
+        "Polity & Econ": ["Polity & Constitution", "Economics & Five Year Plans"],
+        "General Science": ["Physics", "Chemistry", "Biology"],
+        "Dynamic GK": ["Static GK", "Current Affairs"]
+    },
+    "Mock Tests 📝": {
+        "Prelims Mocks": ["Sectional Mocks", "Full-Length Prelims Mocks"],
+        "Mocks & PYQs": ["Full-Length Mains Mocks", "Previous Year Papers (PYQs)"]
+    }
 }
 
-# 4. यूआई (UI) और यूजर इनपुट
-st.subheader("📚 अपना सिलेबस स्क्रॉल करें और मार्क करें:")
+# 4. यूआई (UI) मैनेजमेंट - Tabs सिस्टम
+st.subheader("📚 अपना पूरा सिलेबस यहाँ मार्क करें:")
+
+# सब्जेक्ट्स के टैब बनाना
+tabs = st.tabs(list(syllabus_db.keys()))
 
 total_topics = 0
 completed_topics = 0
 
-cols = st.columns(6)
-
-for i, (subject, topics) in enumerate(syllabus.items()):
-    with cols[i]:
-        st.markdown(f"### **{subject}**")
-        for topic in topics:
-            total_topics += 1
-            is_done = st.checkbox(topic, key=f"{subject}_{topic}")
-            if is_done:
-                completed_topics += 1
-                st.caption("✅ Done")
-            else:
-                days_allocated = st.number_input("⏰ Days allowed:", min_value=1, max_value=30, value=5, key=f"time_{subject}_{topic}")
+for tab_idx, (subject, sub_categories) in enumerate(syllabus_db.items()):
+    with tabs[tab_idx]:
+        # हर सब्जेक्ट के अंदर सब-कैटेगरी को दो कॉलम में दिखाना ताकि स्क्रीन सुंदर लगे
+        sub_col1, sub_col2 = st.columns(2)
+        
+        for sub_cat_idx, (sub_cat, topics) in enumerate(sub_categories.items()):
+            # आधे टॉपिक्स कॉलम 1 में और आधे कॉलम 2 में जाएंगे
+            target_col = sub_col1 if sub_cat_idx % 2 == 0 else sub_col2
+            
+            with target_col:
+                st.markdown(f"#### **{sub_cat}**")
+                for topic in topics:
+                    total_topics += 1
+                    # यूनिक की (Key) बनाने के लिए सब्जेक्ट, कैटेगरी और टॉपिक का नाम मिक्स किया है
+                    unique_key = f"{subject}_{sub_cat}_{topic}".replace(" ", "_")
+                    is_done = st.checkbox(topic, key=unique_key)
+                    
+                    if is_done:
+                        completed_topics += 1
+                        st.caption("✅ Done")
+                    else:
+                        st.number_input("⏰ Days allowed:", min_value=1, max_value=30, value=5, key=f"time_{unique_key}")
+                st.markdown("---")
 
 st.markdown("---")
 
