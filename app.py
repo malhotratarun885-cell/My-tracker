@@ -60,55 +60,74 @@ syllabus_db = {
 }
 
 # 4. यूआई (UI) मैनेजमेंट - Tabs सिस्टम
-st.subheader("📚 अपना पूरा सिलेबस यहाँ मार्क करें:")
+st.subheader("📚 अपना पूरा सिलेबस और लेक्चर्स यहाँ ट्रैक करें:")
 
 # सब्जेक्ट्स के टैब बनाना
 tabs = st.tabs(list(syllabus_db.keys()))
 
-total_topics = 0
-completed_topics = 0
+total_lectures_global = 0
+completed_lectures_global = 0
+today_studied_count = 0
 
 for tab_idx, (subject, sub_categories) in enumerate(syllabus_db.items()):
     with tabs[tab_idx]:
-        # हर सब्जेक्ट के अंदर सब-कैटेगरी को दो कॉलम में दिखाना ताकि स्क्रीन सुंदर लगे
         sub_col1, sub_col2 = st.columns(2)
         
         for sub_cat_idx, (sub_cat, topics) in enumerate(sub_categories.items()):
-            # आधे टॉपिक्स कॉलम 1 में और आधे कॉलम 2 में जाएंगे
             target_col = sub_col1 if sub_cat_idx % 2 == 0 else sub_col2
             
             with target_col:
-                st.markdown(f"#### **{sub_cat}**")
+                st.markdown(f"### 📂 {sub_cat}")
                 for topic in topics:
-                    total_topics += 1
-                    # यूनिक की (Key) बनाने के लिए सब्जेक्ट, कैटेगरी और टॉपिक का नाम मिक्स किया है
                     unique_key = f"{subject}_{sub_cat}_{topic}".replace(" ", "_")
-                    is_done = st.checkbox(topic, key=unique_key)
                     
-                    if is_done:
-                        completed_topics += 1
-                        st.caption("✅ Done")
-                    else:
-                        st.number_input("⏰ Days allowed:", min_value=1, max_value=30, value=5, key=f"time_{unique_key}")
-                st.markdown("---")
+                    st.markdown(f"##### **🔹 {topic}**")
+                    
+                    # 1. आज क्या पढ़ा?
+                    today_mark = st.checkbox("📖 मैंने आज यह टॉपिक पढ़ा है", key=f"today_{unique_key}")
+                    if today_mark:
+                        today_studied_count += 1
+                        st.success("🎯 आज की मेहनत में शामिल!")
+
+                    # 2. लेक्चर ट्रैकर इनपुट
+                    l_col1, l_col2, l_col3 = st.columns(3)
+                    with l_col1:
+                        total_l = st.number_input("कुल लेक्चर्स (Total):", min_value=1, max_value=100, value=10, key=f"total_l_{unique_key}")
+                    with l_col2:
+                        comp_l = st.number_input("पूरे हुए (Completed):", min_value=0, max_value=int(total_l), value=0, key=f"comp_l_{unique_key}")
+                    
+                    # 3. पेंडिंग लेक्चर कैलकुलेशन (हर चैप्टर के ऊपर लाइव दिखेगा)
+                    pending_l = total_l - comp_l
+                    with l_col3:
+                        st.metric(label="⏳ पेंडिंग लेक्चर्स", value=f"{pending_l} Left")
+                    
+                    # ग्लोबल प्रोग्रेस के लिए जोड़ना
+                    total_lectures_global += total_l
+                    completed_lectures_global += comp_l
+                    
+                    st.markdown("---")
 
 st.markdown("---")
 
-# 5. पाई चार्ट इंजन
-st.subheader("📊 आपकी तैयारी का प्रोग्रेस चार्ट")
+# 5. पाई चार्ट और प्रोग्रेस इंजन
+st.subheader("📊 आपकी तैयारी का लाइव प्रोग्रेस बोर्ड")
 
-incomplete_topics = total_topics - completed_topics
+col_metric1, col_metric2 = st.columns(2)
+with col_metric1:
+    st.info(f"🔥 आज आपने कुल **{today_studied_count}** टॉपिक्स पर पढ़ाई की है! इस निरंतरता को बनाए रखें।")
 
-if total_topics > 0:
+pending_lectures_global = total_lectures_global - completed_lectures_global
+
+if total_lectures_global > 0:
     fig = go.Figure(data=[go.Pie(
-        labels=['Completed Topics', 'Syllabus Left'],
-        values=[completed_topics, incomplete_topics],
+        labels=['Completed Lectures', 'Pending Lectures'],
+        values=[completed_lectures_global, pending_lectures_global],
         hole=.4,
         marker_colors=['#2ec4b6', '#e71d36']
     )])
-    fig.update_layout(title_text="Overall Syllabus Completion Status")
+    fig.update_layout(title_text="Overall Lecture Completion Status")
     st.plotly_chart(fig, use_container_width=True)
 
-    progress_percent = (completed_topics / total_topics)
+    progress_percent = (completed_lectures_global / total_lectures_global)
     st.progress(progress_percent)
-    st.write(f"**आपने कुल {total_topics} में से {completed_topics} टॉपिक्स पूरे कर लिए हैं! ({int(progress_percent*100)}% Complete)**")
+    st.write(f"**आपने पूरे सिलेबस के कुल {total_lectures_global} लेक्चर्स में से {completed_lectures_global} लेक्चर्स पूरे कर लिए हैं! ({int(progress_percent*100)}% कंप्लीट)**")
