@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import urllib.parse
 import pandas as pd
+import time
 
 # 1. पेज कॉन्फ़िगरेशन और टाइटल
 st.set_page_config(page_title="CGL Tracker AI", page_icon="🎯", layout="wide")
@@ -76,24 +77,31 @@ for subject, sub_categories in syllabus_db.items():
             if st.session_state.get(f"today_{unique_key}", False):
                 today_studied_topics.append(f"{subject} -> {topic}")
 
-# 🚀 [नया फीचर] स्ट्रीक और हीटमैप के लिए 7 दिनों का डेटाबेस बनाना
+# 🚀 [नया फीचर] स्टॉपवॉच / मैन्युअल स्टडी ऑवर इनपुट
+st.sidebar.markdown("## ⏱️ Study Timer & Target")
+st.sidebar.info("🎯 डेली टारगेट: **10 Hours**")
+
+# मैन्युअल इनपुट या टाइमर मैनेज करना
+manual_hours = st.sidebar.number_input("✍️ आज कितने घंटे पढ़ाई की?", min_value=0.0, max_value=24.0, value=0.0, step=0.5)
+
+# 🚀 [नया फीचर] 10-घंटे स्ट्रीक और हीटमैप लॉजिक
 dates_list = [today - timedelta(days=i) for i in range(6, -1, -1)]
 dates_str = [d.strftime("%Y-%m-%d") for d in dates_list]
 
 if "streak_data" not in st.session_state:
-    # डिफ़ॉल्ट रूप से पिछले 6 दिन खाली और आज का दिन चेक के हिसाब से चलेगा
-    st.session_state.streak_data = {d: (False if i < 6 else (len(today_studied_topics) > 0)) for i, d in enumerate(dates_str)}
+    st.session_state.streak_data = {d: False for d in dates_str}
 
-# आज का स्टेट ऑटो-अपडेट करना
-st.session_state.streak_data[today.strftime("%Y-%m-%d")] = len(today_studied_topics) > 0
+# 🔐 कड़ा नियम: केवल तभी True होगा जब घंटे 10 या उससे ज़्यादा हों
+is_target_achieved = manual_hours >= 10.0
+st.session_state.streak_data[today.strftime("%Y-%m-%d")] = is_target_achieved
 
-# लाइव स्ट्रीक (Live Streak) कैलकुलेट करना
+# लाइव स्ट्रीक कैलकुलेटर
 current_streak = 0
 for d in reversed(dates_str):
     if st.session_state.streak_data[d]:
         current_streak += 1
     else:
-        if d != today.strftime("%Y-%m-%d"): # अगर आज का दिन खाली है तो स्ट्रीक कल तक की देखेगा
+        if d != today.strftime("%Y-%m-%d"):
             break
 
 # 📊 स्क्रीन पर सबसे ऊपर ओवरव्यू डैशबोर्ड
@@ -106,14 +114,20 @@ with sum_col1:
         for t in today_studied_topics:
             st.markdown(f"✅ {t}")
     else:
-        st.error("🚨 एलर्ट: आज का डेटा फीड नहीं हुआ है! कृपया नीचे सिलेबस में जाकर आज पढ़े गए टॉपिक्स को मार्क करें।")
+        st.error("🚨 एलर्ट: आज का डेटा फीड नहीं हुआ है!")
+    
+    # ⏱️ घंटे का लाइव स्टेटस दिखाना
+    st.markdown(f"⏱️ **आज का स्टडी टाइम:** `{manual_hours} Hours` / `10 Hours`")
+    if is_target_achieved:
+        st.success("🎉 बधाई हो! आज का 10 घंटे का कोटा पूरा हुआ। स्ट्रीक सेव्ड!")
+    else:
+        st.warning(f"⚠️ स्ट्रीक लॉक है! स्ट्रीक बचाने के लिए आपको `{10.0 - manual_hours}` घंटे और पढ़ना होगा।")
 
 with sum_col2:
-    # 🔥 स्ट्रीक और हीटमैप यूआई
     st.markdown("### 🔥 Consistency Dashboard")
-    st.metric(label="⚡ Current Study Streak", value=f"{current_streak} Days", delta="🔥 Keep it up!" if current_streak > 0 else "Start Today!")
+    st.metric(label="⚡ Current Study Streak", value=f"{current_streak} Days", delta="🔥 10hr Target Met!" if is_target_achieved else "Target Pending")
     
-    # गिटहब जैसा कंसिस्टेंसी ग्रिड (हीटमैप)
+    # हीटमैप कैलेंडर
     df_heatmap = pd.DataFrame({
         "Date": [d.split("-")[2]+" / "+d.split("-")[1] for d in dates_str],
         "Status": [1 if st.session_state.streak_data[d] else 0 for d in dates_str]
@@ -135,19 +149,18 @@ with sum_col3:
     st.write(f"📲 टारगेट नंबर: `{phone_number}`")
     
     report_msg = f"CGL Daily Report ({today.strftime('%d-%m-%Y')}):\n"
-    report_msg += f"आज कुल {len(today_studied_topics)} टॉपिक्स पढ़े गए।\n"
-    report_msg += f"🔥 मेरी लाइव स्ट्रीक: {current_streak} दिन है!\n"
+    report_msg += f"⏱️ आज की पढ़ाई: {manual_hours}/10 Hours.\n"
+    report_msg += f"🎯 टारगेट स्टेटस: {'पूरा हुआ (Complete) ✅' if is_target_achieved else 'अधूरा (Less than 10hr) ❌'}\n"
+    report_msg += f"🔥 मेरी लाइव स्ट्रीk: {current_streak} दिन है!\n"
     if today_studied_topics:
         report_msg += "टॉपिक्स:\n" + "\n".join([f"- {t.split('-> ')[1]}" for t in today_studied_topics])
-    else:
-        report_msg += "आज कोई डेटा फीड नहीं किया गया।"
 
     encoded_msg = urllib.parse.quote(report_msg)
     whatsapp_url = f"https://wa.me/91{phone_number}?text={encoded_msg}"
     
-    if len(today_studied_topics) == 0:
+    if manual_hours == 0 and len(today_studied_topics) == 0:
         if st.button("🚀 व्हाट्सएप पर रिपोर्ट भेजें (लॉकड)"):
-            st.error("❌ रिपोर्ट ब्लॉक कर दी गई है! पहले नीचे से कोई टॉपिक सिलेक्ट करें।")
+            st.error("❌ रिपोर्ट ब्लॉक कर दी गई है! पहले साइडबार में स्टडी घंटे या नीचे टॉपिक्स भरें।")
     else:
         st.link_button("🚀 व्हाट्सएप पर रिपोर्ट भेजें", whatsapp_url, use_container_width=True)
         st.text_area("📋 आईपैड बैकअप टेक्स्ट:", value=report_msg, height=70)
