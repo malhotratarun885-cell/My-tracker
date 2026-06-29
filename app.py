@@ -5,7 +5,6 @@ import plotly.express as px
 import urllib.parse
 import pandas as pd
 import time
-import pyq of ssc
 
 # 1. पेज कॉन्फ़िगरेशन और टाइटल
 st.set_page_config(page_title="CGL Tracker AI", page_icon="🎯", layout="wide")
