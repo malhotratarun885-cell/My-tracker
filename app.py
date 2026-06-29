@@ -60,7 +60,6 @@ syllabus_db = {
     }
 }
 
-# कुल टॉपिक्स की संख्या पहले से गिनना (कुल 86 टॉपिक्स हैं)
 TOTAL_CHAPTERS_COUNT = 86
 
 # --- डेटा कलेक्ट करने के लिए बैकग्राउंड लूप ---
@@ -85,24 +84,33 @@ with sum_col1:
         for t in today_studied_topics:
             st.markdown(f"✅ {t}")
     else:
-        st.warning("अभी तक आपने नीचे सिलेबस में किसी topic पर 'आज यह पढ़ा है' टिक नहीं किया है।")
+        # ⚠️ डेटा फीड न होने पर होम स्क्रीन अलर्ट
+        st.error("🚨 एलर्ट: आज का डेटा फीड नहीं हुआ है! कृपया नीचे सिलेबस में जाकर आज पढ़े गए टॉपिक्स को मार्क करें।")
 
 with sum_col2:
-    st.markdown("📬 **फ़ोन पर रिपोर्ट भेजें:**")
+    st.markdown("📬 **रिपोर्टर पैनल:**")
     phone_number = "9306707297"
     st.write(f"📲 टारगेट नंबर: `{phone_number}`")
     
+    # रिपोर्ट का मैसेज ड्राफ्ट करना
     report_msg = f"CGL Daily Report ({today.strftime('%d-%m-%Y')}):\n"
     report_msg += f"आज कुल {len(today_studied_topics)} टॉपिक्स पढ़े गए।\n"
     if today_studied_topics:
         report_msg += "टॉपिक्स:\n" + "\n".join([f"- {t.split('-> ')[1]}" for t in today_studied_topics])
     else:
-        report_msg += "आज कोई टॉपिक मार्क नहीं किया गया।"
+        report_msg += "आज कोई डेटा फीड नहीं किया गया।"
 
     encoded_msg = urllib.parse.quote(report_msg)
     whatsapp_url = f"https://wa.me/91{phone_number}?text={encoded_msg}"
     
-    st.link_button("🚀 व्हाट्सएप पर रिपोर्ट भेजें", whatsapp_url, use_container_width=True)
+    # 🛠️ स्मार्ट अलर्ट लॉजिक बटन के लिए
+    if len(today_studied_topics) == 0:
+        if st.button("🚀 व्हाट्सएप पर रिपोर्ट भेजें (लॉकड)", help="डेटा फीड होने पर ही यह काम करेगा"):
+            st.error("❌ रिपोर्ट ब्लॉक कर दी गई है! क्योंकि आज कोई भी टॉपिक मार्क नहीं किया गया है। पहले नीचे से कोई टॉपिक सिलेक्ट करें।")
+    else:
+        st.link_button("🚀 व्हाट्सएप पर रिपोर्ट भेजें", whatsapp_url, use_container_width=True)
+        # आईपैड सफारी के लिए बैकअप: टेक्स्ट बॉक्स जिसे आप सीधे कॉपी कर सकें
+        st.text_area("📋 आईपैड बैकअप टेक्स्ट (अगर व्हाट्सएप सीधे न खुले तो इसे कॉपी कर लें):", value=report_msg, height=100)
 
 st.markdown("---")
 
@@ -110,7 +118,6 @@ st.markdown("---")
 st.subheader("📚 अपना पूरा सिलेबस और लेक्चर्स यहाँ ट्रैक करें:")
 tabs = st.tabs(list(syllabus_db.keys()))
 
-# ग्लोबल चैप्टर काउंटर शुरू करना
 current_chapter_number = 0
 
 for tab_idx, (subject, sub_categories) in enumerate(syllabus_db.items()):
@@ -123,7 +130,7 @@ for tab_idx, (subject, sub_categories) in enumerate(syllabus_db.items()):
             with target_col:
                 st.markdown(f"### 📂 {sub_cat}")
                 for topic in topics:
-                    current_chapter_number += 1  # हर चैप्टर पर काउंट बढ़ेगा
+                    current_chapter_number += 1
                     remaining_chapters = TOTAL_CHAPTERS_COUNT - current_chapter_number
                     
                     unique_key = f"{subject}_{sub_cat}_{topic}".replace(" ", "_")
@@ -143,7 +150,6 @@ for tab_idx, (subject, sub_categories) in enumerate(syllabus_db.items()):
                     with l_col3:
                         st.metric(label="⏳ पेंडिंग लेक्चर्स", value=f"{pending_l} Left")
                     
-                    # 🛠️ सेल्फ-स्टडी भाइयों के लिए नया 'चैप्टर काउंटर प्रोग्रेस इंडिकेटर'
                     st.caption(f"📖 **चैप्टर नंबर: {current_chapter_number} / {TOTAL_CHAPTERS_COUNT}** | ⏳ इसके बाद `{remaining_chapters}` चैप्टर्स और बाकी हैं।")
                     
                     total_lectures_global += total_l
